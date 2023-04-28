@@ -5,7 +5,7 @@ metadata:
   labels:
     app: goserver
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       app: goserver
@@ -16,9 +16,63 @@ spec:
     spec:
       containers:
       - name: goserver
-        image: toniarc/hello-go:v4
-        env:
-          - name: NAME
-            value: "Antônio Júnior"
-          - name: AGE 
-            value: "43"
+        image: toniarc/hello-go:v10
+        resources:
+          requests:
+            cpu: 100m
+            memory: 20Mi
+          limits:
+            cpu: 500m
+            memory: 30Mi
+
+        startupProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          periodSeconds: 3
+          failureThreshold: 30
+        
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          periodSeconds: 3
+          failureThreshold: 1
+          successThreshold: 1
+          # initialDelaySeconds: 10
+        
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          periodSeconds: 3
+          failureThreshold: 1
+          timeoutSeconds: 1
+          successThreshold: 1
+          # initialDelaySeconds: 15
+        envFrom:
+          - configMapRef:
+              name: goserver-env
+          - secretRef:
+              name: goserver-secret
+        # env:
+        #   - name: NAME
+        #     valueFrom:
+        #       configMapKeyRef:
+        #         key: goserver-env
+        #         name: 'name'
+        #   - name: AGE 
+        #     valueFrom:
+        #       configMapKeyRef:
+        #         key: goserver-env
+        #         name: 'age'
+        volumeMounts:
+          - mountPath: "/go/myfamily"
+            name: config
+      volumes:
+        - name: config
+          configMap:
+            name: configmap-family
+            items:
+              - key: members
+                path: "family.txt"
